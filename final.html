@@ -1,0 +1,1612 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <title>Forecast Search</title>
+        <script src="js/jquery-2.1.4.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.9/jquery.validate.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.4.1/moment-timezone-with-data.js"></script>
+        <script src="http://openlayers.org/api/OpenLayers.js"></script>
+        <style type="text/css">
+            label.error {
+                color: #FB3A3A;
+                display: inline-block;
+
+                padding: 0;
+                text-align: left;
+                width: 220px;
+            }
+            
+            .nav-tabs > li.active > a,
+            .nav-tabs > li.active > a:focus {
+                color: #fff;
+                background-color: #146296;
+                border-color: white;
+            }
+            .glyphicon-refresh:before
+            {
+              margin-right: 10px;
+            }
+            .paddingClass
+            {
+              padding: 0.3%;
+            }
+
+            .paddingClassZero
+            {
+              padding: 0%;
+              border-radius: 7px;
+            }
+
+            .paddingClassUi
+            {
+              padding: 0.5%;
+            }
+
+            .paddingClass2
+            {
+               padding: 0.7%;
+            }
+            .padding3
+            {
+              padding-top: 0.8%;
+            }
+
+
+            .panel
+            {
+              margin-bottom: 0px;
+            }
+     </style>
+        <script type="text/javascript"> 
+            function ClearAll()
+            {
+                $('#result').hide();
+                document.getElementById("address").value = "";
+                document.getElementById("city").value = "";
+                document.getElementById("state").value = "";
+                document.getElementById("fahrenheit").checked = true;
+            }
+            
+            function weatherimage(weather_picture)
+            {
+                if(weather_picture == "clear-day")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/clear.png";
+                else if(weather_picture == "clear-night")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/clear_night.png";
+                else if(weather_picture == "rain")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/rain.png";
+                else if(weather_picture == "snow")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/snow.png";
+                else if(weather_picture == "sleet")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/sleet.png";
+                else if(weather_picture == "wind")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/wind.png";
+                else if(weather_picture == "fog")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/fog.png";
+                else if(weather_picture == "cloudy")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/cloudy.png";
+                else if(weather_picture == "partly-cloudy-day")
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/cloud_day.png";
+                else
+                    img = "http://cs-server.usc.edu:45678/hw/hw8/images/cloud_night.png";  
+                return img;
+            }
+            
+            (function($,W,D)
+        {
+            var JQUERY4U = {};
+
+            JQUERY4U.UTIL =
+            {
+                setupFormValidation: function()
+                {
+                    $('#forecastform').validate({
+                        rules: {
+                            address: {
+                                required: true
+                            },
+                            city: {
+                                required: true
+                            },
+                            state: {
+                                required: true
+                            }
+                        },
+                        messages: {
+                              city: "Please enter a city",
+                            address: "Please enter a street address",
+                            state: "Please select a state"
+                        }
+                    });
+                    
+                  $('#clear').on('click', function () {
+        $("#forecastform").validate().resetForm();
+    });
+                }
+            }
+
+            //when the dom has loaded setup form validation rules
+            $(D).ready(function($) {
+                $('#result').hide();
+                JQUERY4U.UTIL.setupFormValidation();
+                $(".js-ajax-php-json").submit(function(e){
+                        e.preventDefault();         
+                    $('#tabs li:eq(0) a').tab('show');
+                    if(document.getElementById("fahrenheit").checked == true)
+                    {
+                        unit = $('#fahrenheit').val();
+                        units = "si";
+                        tempUnit = "F";
+                        windUnit = " mph";
+                        visibUnit = " mi";
+                        pressureUnit = "mb";
+                    }
+                    else
+                    {
+                        unit = $('#celsius').val();
+                        units = "us";
+                        tempUnit = "C";
+                        windUnit = " mts/sec";
+                        visibUnit = " km";
+                        pressureUnit = "hPa";
+                    }
+                        var data = {
+                            address: $('#address').val(),
+                            city: $('#city').val(),
+                            state: $('#state').val(),
+                            units: unit
+                        };
+                        $.ajax({
+                        type: "GET",
+                        url: "index.php",
+                        data: data,
+                        dataType: "json"
+
+                    }).done(function(data) {
+                            
+                            console.log(data);
+                            //$("#tabs").tabs("option", "active", 0);
+                            curr = data['currently'];
+                            img = weatherimage(curr['icon']);
+                            
+                            //Start of Tab 1
+                            //document.getElementById("result").value="";
+                            //$('.nav-tabs li').removeClass('active');
+                            //$('.nav-tabs li:first').addClass('active');  
+                            $('#img').attr("src",img);
+                            $('#img').attr("alt",curr['icon']);
+                            tempMin = Math.round(data['daily']['data'][0]['temperatureMin']);
+                            tempMax = Math.round(data['daily']['data'][0]['temperatureMax']);
+                            
+                            $('#tab1summary').html(curr['summary'] + " in " + document.getElementById("city").value + ", " + document.getElementById("state").value);
+                            $('#tempbig').html(Math.round(curr['temperature']) + "<sup style='font-size: 27px;'>&deg" + tempUnit + "</sup>");
+                            precipIntensity = curr['precipIntensity'];
+                            $('#lowhigh').html("<span style='color: blue;'>L:" + tempMin + "&deg</span> | <span style='color: green;'>H:" + tempMax + "&deg</span><img class:'pull-right' align='right' src='http://cs-server.usc.edu:45678/hw/hw8/images/fb_icon.png' onclick=\"checkLoginState();\" height='40' width='40'></img>");
+                    
+                            if(units == "si")
+                                precipIntensity *= 0.0393701;
+
+                            if(precipIntensity >= 0 && precipIntensity < 0.002)
+                                precipitation = "None";
+                            else if(precipIntensity >= 0.002 && precipIntensity < 0.017)
+                                precipitation = "Very Light";
+                            else if(precipIntensity >= 0.017 && precipIntensity < 0.1)
+                                precipitation = "Light";
+                            else if(precipIntensity >= 0.1 && precipIntensity < 0.4)
+                                precipitation = "Moderate";
+                            else
+                                precipitation = "Heavy";
+                            
+                            $('#precipitation').html(precipitation);
+                            $('#chanceofrain').html(curr['precipProbability'] * 100 + "%");
+                            $('#windspeed').html(curr['windSpeed'] + windUnit);
+                            $('#dewpoint').html(curr['dewPoint'] + "&deg" + tempUnit);
+                            $('#humidity').html(Math.round(curr['humidity'] * 100) + "%");
+                            $('#visibility').html(curr['visibility'] + visibUnit);
+                            
+                            var sunrise = moment.unix(data['daily']['data'][0]['sunriseTime']);
+                            $('#sunrise').html(sunrise.tz(data['timezone']).format('hh:mm A'));
+                            
+                            var sunset = moment.unix(data['daily']['data'][0]['sunsetTime']);
+                            $('#sunset').html(sunset.tz(data['timezone']).format('hh:mm A'));
+                                longitude=data['longitude'];
+                            latitude=data['latitude'];
+                            document.getElementById("map").innerHTML = "";
+                            map = new OpenLayers.Map("map");
+                              mapnik = new OpenLayers.Layer.OSM();
+                             var fromProjection = new OpenLayers.Projection("EPSG:4326");   // Transform from WGS 1984
+                        var toProjection   = new OpenLayers.Projection("EPSG:900913"); // to Spherical Mercator Projection
+                         
+                             lonlat = new OpenLayers.LonLat(longitude,latitude).transform( fromProjection, toProjection);
+                        //Create overlays;
+                            // Create OSM overlays
+
+                                                    layer_cloud = new OpenLayers.Layer.XYZ(
+                                "clouds",
+                                "http://${s}.tile.openweathermap.org/map/clouds/${z}/${x}/${y}.png",
+                                {
+                                    isBaseLayer: false,
+                                    opacity: 0.7,
+                                    sphericalMercator: true
+                                }
+                            );
+
+                             layer_precipitation = new OpenLayers.Layer.XYZ(
+                                "precipitation",
+                                "http://${s}.tile.openweathermap.org/map/precipitation/${z}/${x}/${y}.png",
+                                {
+                                    isBaseLayer: false,
+                                    opacity: 0.7,
+                                    sphericalMercator: true
+                                }
+                            );
+
+                            map.addLayers([mapnik, layer_precipitation, layer_cloud]);
+                             map.addLayers(mapnik);
+                        map.setCenter( lonlat, 5 );
+                            var markers=new OpenLayers.Layer.Markers("Markers");
+                            map.addLayer(markers);
+                            markers.addMarker(new OpenLayers.Marker(lonlat));
+                            
+                            //End of Tab 1
+                            
+                            //Start of Tab 2
+                            
+                            $('#tempheader').html("Temp(&deg" + tempUnit + ")");
+                            
+                            for(var i = 0; i < 24; i++)
+                            {    
+                                var hour = data['hourly']['data'][i];
+                                var time = moment.unix(hour['time']);
+                                $('#time'+i).html(time.tz(data['timezone']).format('hh:mm A'));
+                                $('#summary'+i).html("<img src='" + weatherimage(hour['icon']) + "' alt='" + hour['summary'] + "' width='40px' height='40px'></img>");
+                                $('#cloudcover'+i).html(Math.round(hour['cloudCover'] * 100) + "%");
+                                $('#temperature'+i).html(hour['temperature'] + "&deg" + tempUnit);
+                                $('#windspeed'+i).html(hour['windSpeed'] + windUnit);
+                                $('#humidity'+i).html(Math.round(hour['humidity'] * 100) + "%");
+                                $('#visibility'+i).html(hour['visibility'] + visibUnit);
+                                $('#pressure'+i).html(hour['pressure'] + pressureUnit);
+                            }
+                            
+                            //End of Tab 2
+                            
+                            //Start of Tab 3
+                            
+                            for(var i = 1; i <= 7; i++)
+                            {
+                                var daily = data['daily']['data'][i];
+                                var time = moment.unix(daily['time']);
+                                var image = weatherimage(daily['icon']);
+                                
+                                var btntext = time.tz(data['timezone']).format('dddd') + "<br/><br/>" + time.tz(data['timezone']).format('MMM DD') + "<br/><br/>" + "<img src=\"" + img + "\" alt=\"" + daily['icon'] + "\" height=\"60\" width=\"60\"></img><br/><br/>Min<br/>Temp<br/><br/><span style=\"font-size:20px;\">" + Math.round(daily['temperatureMin']) + "&deg</span><br/><br/>Max<br/>Temp<br/><br/><span style=\"font-size:20px;\">" + Math.round(daily['temperatureMax']) + "&deg</span>";
+                                $('#btn'+i).html(btntext);
+
+                                var tab3header = "Weather in " + document.getElementById("city").value + " on " + time.tz(data['timezone']).format('MMM DD');
+                                $('#day' + i + 'title').html(tab3header);
+                                
+                                $('#day' + i + 'img').attr("src",image);
+                                $('#day' + i + 'img').attr("alt",daily['icon']);
+                                
+                                var summary = time.tz(data['timezone']).format('dddd') + " : ";
+                                var summary2 = daily['summary'];
+                                $('#day' + i + 'main').html(summary);
+                                $('#day' + i + 'main1').html(summary2);
+                                
+                                
+                                
+                                var sunrise = moment.unix(daily['sunriseTime']);
+                                if(isNaN(daily['windSpeed']))
+                                    windSpeed = "N.A";
+                                else
+                                    windSpeed = daily['windSpeed'] + windUnit;
+                                
+                                $('#day' + i + 'sunwind').html("<b>Sunrise Time:</b> <br/>" + sunrise.tz(data['timezone']).format('hh:mm A') + "<br/><b>Wind Speed:</b> <br/>" + windSpeed);
+                            
+                                var sunset = moment.unix(daily['sunsetTime']);
+                                if(isNaN(daily['visibility']))
+                                    visibility = "N.A";
+                                else
+                                    visibility = daily['visibility'] + visibUnit;
+                                
+                                $('#day' + i + 'sunvisib').html("<b>Sunset Time:</b> <br/>" + sunset.tz(data['timezone']).format('hh:mm A') + "<br/><b>Visibility:</b> <br/>" + visibility);
+                                
+                                if(isNaN(daily['humidity']))
+                                    humidity = "N.A";
+                                else 
+                                    humidity = Math.round(daily['humidity'] * 100) + "%";
+                                
+                                if(isNaN(daily['pressure']))
+                                    pressure = "N.A";
+                                else 
+                                    pressure = daily['pressure'] + pressureUnit;
+                                
+                                $('#day' + i + 'humidpres').html("<b>Humidity:</b> <br/>" + humidity + "<br/><b>Pressure:</b> </br>" + pressure);
+                            }
+                            
+                            
+                            
+                            //End of Tab 3
+                            
+                            $('#result').show();
+                    }).fail(function(){});
+                });
+            });
+        })(jQuery, window, document); 
+            
+            function statusChangeCallback(response) 
+            {
+                console.log('statusChangeCallback');
+                console.log(response);
+                if (response.status === 'connected') 
+                {
+                        testAPI();
+                } 
+                else 
+                {
+                        myFacebookLogin();
+                } 
+            }
+
+            function checkLoginState() 
+            {
+                FB.getLoginStatus(function(response){
+                    statusChangeCallback(response);
+                },true);
+            }
+
+            window.fbAsyncInit = function() {
+                FB.init({
+                    appId      : '1068361273183383',
+                    cookie     : true,  
+                    xfbml      : true,  
+                    oauth      : true,
+                    version    : 'v2.2'    
+                }); 
+            };
+            (function(d, s, id) {
+                var js, fjs = d.getElementsByTagName(s)[0];
+                if (d.getElementById(id)) return;
+                js = d.createElement(s); js.id = id;
+                js.src = "//connect.facebook.net/en_US/sdk.js";
+                fjs.parentNode.insertBefore(js, fjs);
+            }(document, 'script', 'facebook-jssdk'));
+
+            function testAPI() {
+                console.log('Welcome!  Fetching your information.... ');
+                FB.api('/me', function(response) {
+                    if(response.name=="undefined")
+                        myFacebookLogin();
+                    else{
+                    console.log('Successful login for: ' + response.name);}
+                });
+                FB.ui(
+                               {
+                                   method: 'feed',
+                                   name: "Current Weather in " + document.getElementById("city").value + ", " + document.getElementById("state").value,
+                                   link: "http://forecast.io" ,
+                                   description: curr['summary'] + ", " + Math.round(curr['temperature']) + "&deg;" + tempUnit,
+                                   caption: "WEATHER INFORMATION FROM FORECAST.IO",
+                                   picture: img
+                               },  
+                                // callback
+                               function(response) 
+                               {
+                                   if (response && !response.error_message) 
+                                   {
+                                       alert('Posted Successfully.');
+                                   } 
+                                   else 
+                                   {
+                                       alert('Not Posted.');
+                                   }
+                               });
+
+              }
+            
+              function myFacebookLogin() {
+
+              FB.login(function(){FB.ui(
+                               {
+                                   method: 'feed',
+                                   name: "Current Weather in " + document.getElementById("city").value + ", " + document.getElementById("state").value,
+                                   link: "http://forecast.io" ,
+                                   description: curr['summary'] + ", " + Math.round(curr['temperature']) +"&deg;"+ tempUnit,
+                                   caption: "WEATHER INFORMATION FROM FORECAST.IO",
+                                   picture: img
+                               },  
+                                // callback
+                               function(response) 
+                               {
+                                   if (response && !response.error_message) 
+                                   {
+                                       alert('Posted Successfully.');
+                                   } 
+                                   else 
+                                   {
+                                       alert('Not Posted.');
+                                   }
+                               });}
+            );}
+        </script>
+    </head>
+    <body style= "background-image: url('http://cs-server.usc.edu:45678/hw/hw8/images/bg.jpg'); background-attachment: fixed; background-repeat: no-repeat;">
+        <h1 style="text-align:center;">Forecast Search</h1>
+        <div class="container">
+            <fieldset style= "background-color:rgba(1, 1, 1, 0.25);">            
+                <form class="js-ajax-php-json" id="forecastform" novalidate="novalidate" role="form" method="get" accept-charset="utf-8" style="padding-top: 10px;">
+                    <div class="col-lg-3 col-md-3 col-sm-12">
+                        <label for="address" style="color:white;">Street Address:<span style="color:red;">*</span></label><br/>
+                        <input type="text" name="address" class="form-control" id="address" placeholder="Enter street address">
+                    </div>
+
+                    <div class="col-lg-2 col-md-2 col-sm-12">
+                        <label for="city"  style="color:white;">City:<span style="color:red;">*</span></label><br/>
+                        <input type="text" name="city" class="form-control" id="city" placeholder="Enter the city name">
+                    </div>
+
+                    <div class="col-lg-2 col-md-2 col-sm-12">
+                        <label for="state" style="color:white;">State:<span style="color:red;">*</span></label><br/>
+                        <select name="state" class="form-control" id="state">
+                            <option value="">Select your state...</option>
+                            <option value="AL">Alabama</option>
+                            <option value="AK">Alaska</option>
+                            <option value="AZ">Arizona</option>
+                            <option value="AR">Arkansas</option>
+                            <option value="CA">California</option>
+                            <option value="CO">Colorado</option>
+                            <option value="CT">Connecticut</option>
+                            <option value="DE">Delaware</option>
+                            <option value="DC">District Of Columbia</option>
+                            <option value="FL">Florida</option>
+                            <option value="GA">Georgia</option>
+                            <option value="HI">Hawaii</option>
+                            <option value="ID">Idaho</option>
+                            <option value="IL">Illinois</option>
+                            <option value="IN">Indiana</option>
+                            <option value="IA">Iowa</option>
+                            <option value="KS">Kansas</option>
+                            <option value="KY">Kentucky</option>
+                            <option value="LA">Louisiana</option>
+                            <option value="ME">Maine</option>
+                            <option value="MD">Maryland</option>
+                            <option value="MA">Massachusetts</option>
+                            <option value="MI">Michigan</option>
+                            <option value="MN">Minnesota</option>
+                            <option value="MS">Mississippi</option>
+                            <option value="MO">Missouri</option>
+                            <option value="MT">Montana</option>
+                            <option value="NE">Nebraska</option>
+                            <option value="NV">Nevada</option>
+                            <option value="NH">New Hampshire</option>
+                            <option value="NJ">New Jersey</option>
+                            <option value="NM">New Mexico</option>
+                            <option value="NY">New York</option>
+                            <option value="NC">North Carolina</option>
+                            <option value="ND">North Dakota</option>
+                            <option value="OH">Ohio</option>
+                            <option value="OK">Oklahoma</option>
+                            <option value="OR">Oregon</option>
+                            <option value="PA">Pennsylvania</option>
+                            <option value="RI">Rhode Island</option>
+                            <option value="SC">South Carolina</option>
+                            <option value="SD">South Dakota</option>
+                            <option value="TN">Tennessee</option>
+                            <option value="TX">Texas</option>
+                            <option value="UT">Utah</option>
+                            <option value="VT">Vermont</option>
+                            <option value="VA">Virginia</option>
+                            <option value="WA">Washington</option>
+                            <option value="WV">West Virginia</option>
+                            <option value="WI">Wisconsin</option>
+                            <option value="WY">Wyoming</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-5 col-md-5 col-sm-12" style="padding-top:8px">
+                        <div class="col-lg-6 col-md-6 col-sm-12">
+                            <label for="degree" style="color:white;">Degree:<span style="color:red;">*</span></label><br/>
+                            <label style="color:white;">
+                                <input id="fahrenheit" name="units" value="fahrenheit" type="radio" checked>
+                                Fahrenheit
+                            </label>
+                            <label style="color:white;">
+                                <input id="celsius" name="units" value="celsius" type="radio">
+                                Celsius
+                            </label>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12"  style="padding-top:15px;">
+                            <button class="btn btn-primary" type="submit">
+                                <span class="glyphicon glyphicon-search"></span> Search 
+                            </button>
+
+                            <button id="clear" class="btn btn-default" type="button" onclick="ClearAll();">
+                                <span class="glyphicon glyphicon-refresh"></span> Clear
+                            </button>
+                            <br/><br/>
+                            <label style="color:white;"> Powered by: </label>
+                        <a href="http://forecast.io"><img src="http://cs-server.usc.edu:45678/hw/hw8/images/forecast_logo.png" width="100" height="50"></img></a>
+                        </div>
+                    </div>
+                </form>
+            </fieldset>
+        
+        <hr>
+        
+        <div id="result">
+            <ul id="tabs" class="nav nav-tabs">
+              <li class="active" role="presentation" style="background-color:white; font-size: 12px;"><a data-toggle="tab" href="#now">Right Now</a></li>
+              <li role="presentation" style="background-color:white; font-size: 12px;"><a data-toggle="tab" href="#nextday">Next 24 Hours</a></li>
+              <li role="presentation" style="background-color:white; font-size: 12px;"><a data-toggle="tab" href="#nextweek">Next 7 Days</a></li>
+            </ul>
+            <div class="tab-content">
+            <div id="now" class="tab-pane fade in active">
+                <div class="col-lg-6 col-md-6 col-sm-12">
+                    
+                    
+                 <div class="row" style="background-color:#FF9999;">  
+                <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12" style="padding-top:25px;padding-bottom:25px;" align="center">
+                    <img id="img" src="" alt="" height="128" width="128"></img></div>
+                <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12" id="firstrow" align="center" style="padding-top: 10px; padding-bottom: 10px;">
+                    <p id="tab1summary" style="color:white; font-weight: bold;"></p>
+                    <p id="tempbig" style="color:white; font-size: 56px;"></p>
+                    <p id="lowhigh"></p>
+                    </div>
+                </div>
+                
+                <div class="row" style="background-color:white;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Precipitation</div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="precipitation" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"> </div>
+                </div>
+                
+                 <div class="row" style="background-color:#FFCCCC;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Chance of Rain</div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="chanceofrain" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div> 
+                </div>
+                 <div class="row"style="background-color:white;" > 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Wind Speed</div>
+                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="windspeed" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div> 
+                </div>
+                 <div class="row" style="background-color:#FFCCCC;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Dew Point</div>
+                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="dewpoint" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div> 
+                </div>
+                 <div class="row"style="background-color:white;" > 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Humidity</div>
+                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="humidity" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div>
+                </div>
+                 <div class="row" style="background-color:#FFCCCC;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Visibility</div>
+                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="visibility" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div> 
+                </div>
+                 <div class="row" style="background-color:white;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Sunrise</div>
+                     <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" id="sunrise" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div> 
+                </div>
+                 <div class="row" style="background-color:#FFCCCC;"> 
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding-left:10px;padding-top:10px;padding-bottom:10px;">Sunset</div>
+                     <div class="col-lg-6 col-md-6 col-xs-6 col-sm-6" id="sunset" style="padding-left:10px;padding-top:10px;padding-bottom:10px;"></div>
+                </div> 
+                </div>
+            
+            <div class="col-lg-6 col-md-6 col-sm-12" style="padding-right:0;padding-left:0;">
+                <div id="map" style="height:80.5%; width:100%;">
+                </div>
+                </div></div>
+          
+            <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 tab-pane fade' id='nextday'>
+                <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: #146296; color:white; font-weight: bold;'>Time</div>
+                <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: #146296; color:white; font-weight: bold;'>Summary</div>
+                <div class='col-lg-2 col-md-2 col-sm-2  col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: #146296; color:white; font-weight: bold;'>Cloud Cover</div>
+                <div id='tempheader' class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: #146296; color:white; font-weight: bold;'></div>
+                <div class='col-lg-2 col-md-2 col-sm-2 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: #146296; color:white; font-weight: bold;'>View Details</div>
+                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time0" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover0" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading0'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse0' aria-expanded='true' aria-controls='collapse0'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse0' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading0'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure0" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time1" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover1" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading1'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse1' aria-expanded='true' aria-controls='collapse1'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse1' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading1'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure1" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time2" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover2" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading2'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse2' aria-expanded='true' aria-controls='collapse2'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse2' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading2'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure2" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time3" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover3" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading3'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse3' aria-expanded='true' aria-controls='collapse3'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse3' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading3'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure3" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time4" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover4" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading4'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse4' aria-expanded='true' aria-controls='collapse4'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse4' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading4'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure4" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time5" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover5" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading5'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse5' aria-expanded='true' aria-controls='collapse5'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse5' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading5'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure5" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time6" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover6" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading6'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse6' aria-expanded='true' aria-controls='collapse6'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse6' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading6'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure6" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time7" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover7" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading7'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse7' aria-expanded='true' aria-controls='collapse7'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse7' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading7'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure7" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time8" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover8" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading8'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse8' aria-expanded='true' aria-controls='collapse8'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse8' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading8'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure8" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time9" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover9" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading9'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse9' aria-expanded='true' aria-controls='collapse9'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse9' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading9'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure9" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time10" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover10" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading10'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse10' aria-expanded='true' aria-controls='collapse10'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse10' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading10'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure10" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time11" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover11" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading11'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse11' aria-expanded='true' aria-controls='collapse11'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse11' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading11'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure11" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time12" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover12" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading12'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse12' aria-expanded='true' aria-controls='collapse12'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse12' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading12'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure12" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time13" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover13" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading13'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse13' aria-expanded='true' aria-controls='collapse13'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse13' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading13'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure13" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time14" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover14" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading14'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse14' aria-expanded='true' aria-controls='collapse14'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse14' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading14'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure14" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time15" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover15" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading15'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse15' aria-expanded='true' aria-controls='collapse15'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse15' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading15'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure15" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time16" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover16" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading16'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse16' aria-expanded='true' aria-controls='collapse16'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse16' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading16'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure16" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time17" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover17" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading17'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse17' aria-expanded='true' aria-controls='collapse17'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse17' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading17'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure17" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time18" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover18" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading18'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse18' aria-expanded='true' aria-controls='collapse18'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse18' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading18'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure18" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time19" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover19" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading19'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse19' aria-expanded='true' aria-controls='collapse19'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse19' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading19'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure19" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time20" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover20" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading20'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse20' aria-expanded='true' aria-controls='collapse20'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse20' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading20'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure20" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time21" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover21" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading21'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse21' aria-expanded='true' aria-controls='collapse21'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse21' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading21'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure21" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time22" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover22" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading22'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse22' aria-expanded='true' aria-controls='collapse22'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse22' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading22'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure22" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: white; padding:0px;'>
+                        <hr>
+                        <div id="time23" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; padding-right:0px; padding-left:0px; background-color: white;'></div>
+                        <div id="summary23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:25px; background-color: white;'></div>
+                        <div id="cloudcover23" class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div id="temperature23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-bottom:45px; background-color: white;'></div>
+                        <div class='col-lg-2 col-md-2 col-sm-2 col-xs-2 text-center' style='padding-bottom: 9px; background-color: white;'>
+                            <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+                                <div class='panel panel-default' style=' border-color: white; box-shadow: none;'>
+                                    <div class='panel-heading' style='background: white !important;' role='tab' id='heading23'>
+                                        <a role='button' data-toggle='collapse' data-parent='#accordion' href='#collapse23' aria-expanded='true' aria-controls='collapse23'>
+                                            <span class='glyphicon glyphicon-plus' style='color:#146296;'></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id='collapse23' class='panel-collapse collapse' role='tabpanel' aria-labelledby='heading23'>
+                            <div class='panel-body' style='background-color: #E8E9EA; padding-top:10px;'>
+                                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12 text-center' style='padding:0px; padding-top:25px; padding-bottom:30px;'>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-2 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Wind</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Humidity</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Visibility</div>
+                                    <div class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px; background-color: white; font-weight: bold;'>Pressure</div>
+                                    <div id="windspeed23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="humidity23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="visibility23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                    <div id="pressure23" class='col-lg-3 col-md-3 col-sm-3 col-xs-3 text-center' style='padding-top:5px; padding-bottom:5px;'></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>    
+            <div id="nextweek" class="tab-pane fade">
+                <div class='col-lg-12 col-md-12 col-sm-12 col-xs-12' style='background-color: black; padding:0px;'> 
+                    <div class="row container-fluid">
+                        <div class="col-md-1 col-md-offset-2" style="padding:0.5%">        
+                            <button type="button" id="btn1" class="btn btn-lg paddingClassZero" style="background-color:#367DB5;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day1"></button>            
+                            <div class="modal fade" id="day1" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content col-lg-12 col-md-12 col-sm-12 col-xs-12">            
+                                        <div class="modal-header" id="day1header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day1title"></h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day1body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day1img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day1main" ></div><span id="day1main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day1sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day1sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day1humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div> 
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn2" class="btn btn-lg paddingClassZero" style="background-color:#EC4444;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day2"></button>          
+                            <div class="modal fade" id="day2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day2header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day2title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day2body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day2img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day2main" ></div><span id="day2main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day2sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day2sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day2humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div> 
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn3" class="btn btn-lg paddingClassZero" style="background-color:#FF9933;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day3"></button>          
+                            <div class="modal fade" id="day3" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day3header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day3title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day3body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day3img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day3main" ></div><span id="day3main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day3sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day3sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day3humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div>
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn4" class="btn btn-lg paddingClassZero" style="background-color:#999900;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day4"></button>          
+                            <div class="modal fade" id="day4" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day4header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day4title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day4body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day4img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day4main" ></div><span id="day4main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day4sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day4sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day4humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div>      
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn5" class="btn btn-lg paddingClassZero" style="background-color:#9966CC;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day5"></button>          
+                            <div class="modal fade" id="day5" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day5header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day5title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day5body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day5img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day5main" ></div><span id="day5main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day5sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day5sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day5humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div>      
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn6" class="btn btn-lg paddingClassZero" style="background-color:#FF9999;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day6"></button>          
+                            <div class="modal fade" id="day6" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day6header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day6title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day6body" align="center">
+                                           <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day6img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day6main" ></div><span id="day6main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day6sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day6sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day6humidpres">
+                                            </div>
+                                            </div>
+                                        </div> 
+                                        <div class="modal-footer">             
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div>    
+
+                        <div class="col-md-1" style="padding:0.5%">        
+                            <button type="button" id="btn7" class="btn btn-lg paddingClassZero" style="background-color:#CC3399;color:white;padding:0%;width:100%;font-size:14px;" data-toggle="modal" data-target="#day7"></button>          
+                            <div class="modal fade" id="day7" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">         
+                                <div class="modal-dialog" role="document">           
+                                    <div class="modal-content">            
+                                        <div class="modal-header" id="day7header">            
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>               
+                                            <h4 class="modal-title" id="day7title">Modal title</h4>           
+                                        </div>            
+                                        <div class="modal-body" id="day7body" align="center">
+                                            <div class='container-fluid'>
+                                                <div class='row'>
+                                            <div class='col-md-12'><center>
+                                            <img id="day7img" src="" alt="" height="150px" width="150px;"></img></center></div></div>
+                                            
+                                            <div class='row'><div class='col-md-12'><h3><div><div style="display:inline;" id="day7main" ></div><span id="day7main1" style="color:#FFAB10"></span></div></h3></div></div>
+                                              <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day7sunwind">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day7sunvisib">
+                                            </div>
+                                            <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12" id="day7humidpres">
+                                            </div>
+                                            </div>
+                                        
+                                          
+                                        </div> 
+                                        <div class="modal-footer"> 
+                                           
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>  </div>
+                                        </div>       
+                                    </div>           
+                                </div>         
+                            </div>      
+                        </div>      
+                    </div> 
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </body>
+</html>
